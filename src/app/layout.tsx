@@ -5,6 +5,8 @@ import Footer from "@/components/layout/Footer";
 import SidebarAdSlot from "@/components/ui/SidebarAdSlot";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
+const ADSENSE_CLIENT_ID = "ca-pub-7027560098948866";
+
 const TITLE = `${SITE_NAME} · 퇴직금·실업급여·주휴수당 계산기`;
 const DESCRIPTION =
   "입사일과 퇴사일, 급여 정보만 있으면 퇴직금, 실업급여 조건, 주휴수당을 회원가입 없이 바로 확인할 수 있는 계산기 사이트입니다.";
@@ -55,6 +57,12 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
+          crossOrigin="anonymous"
+        />
         <Header />
         <SidebarAdSlot side="left" />
         <SidebarAdSlot side="right" />
