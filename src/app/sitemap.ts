@@ -2,6 +2,9 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 import { ARTICLES } from "@/lib/mock/articles";
 
+// 정적 내보내기(output: export) 빌드에서는 빌드 시점에 고정 생성되도록 명시해야 합니다.
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: "monthly", priority: 1 },

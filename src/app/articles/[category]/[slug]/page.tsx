@@ -6,12 +6,20 @@ import Button from "@/components/ui/Button";
 import AdSlot from "@/components/ui/AdSlot";
 import Disclaimer from "@/components/ui/Disclaimer";
 import {
+  ARTICLES,
   getArticle,
   getArticlesByCategory,
   getCategory,
 } from "@/lib/mock/articles";
 
 type PageParams = { category: string; slug: string };
+
+export function generateStaticParams(): PageParams[] {
+  return ARTICLES.map((article) => ({
+    category: article.category,
+    slug: article.slug,
+  }));
+}
 
 export async function generateMetadata({
   params,

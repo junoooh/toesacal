@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
+// 정적 내보내기(output: export) 빌드에서는 빌드 시점에 고정 생성되도록 명시해야 합니다.
+export const dynamic = "force-static";
 
 export default function AppleIcon() {
   return new ImageResponse(
