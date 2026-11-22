@@ -3,7 +3,12 @@ import Button from "@/components/ui/Button";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { formatWon } from "@/lib/format";
-import { DAY_LABELS, type HolidayPayResult as HolidayPayResultType } from "@/lib/calculations/holidayPay";
+import {
+  DAY_LABELS,
+  LEGACY_HOLIDAY_PAY_WORK_YEAR,
+  formatHolidayPayMinimumWage,
+  type HolidayPayResult as HolidayPayResultType,
+} from "@/lib/calculations/holidayPay";
 
 const RELATED_ARTICLES = [
   { title: "주휴수당 조건 쉽게 설명", slug: "eligibility-explained" },
@@ -21,7 +26,12 @@ export default function HolidayPayResult({ result }: HolidayPayResultProps) {
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-5 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg text-text">주휴수당 계산 결과</h3>
+          <div>
+            <h3 className="text-lg text-text">주휴수당 계산 결과</h3>
+            <p className="mt-1 text-xs text-sub">
+              비교 기준: {formatHolidayPayMinimumWage(result.workYear ?? LEGACY_HOLIDAY_PAY_WORK_YEAR)}
+            </p>
+          </div>
           <StatusBadge status={result.status}>{result.label}</StatusBadge>
         </div>
 

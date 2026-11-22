@@ -13,6 +13,7 @@ import {
   type SavedHolidayPay,
 } from "@/lib/storage";
 import { formatWon } from "@/lib/format";
+import { LEGACY_HOLIDAY_PAY_WORK_YEAR } from "@/lib/calculations/holidayPay";
 
 const DEFAULT_CENTER_CHECKS = [
   "실업급여 신청 전 고용센터 상담 예약",
@@ -97,6 +98,7 @@ export default function SummaryDashboard() {
               ? [
                   `예상 주휴수당: ${formatWon(holidayPay.result.weeklyHolidayPay)}`,
                   `주간 총 근무시간: ${holidayPay.result.totalWeeklyHours}시간`,
+                  `비교 기준: ${holidayPay.result.workYear ?? LEGACY_HOLIDAY_PAY_WORK_YEAR}년`,
                 ]
               : ["아직 계산하지 않았어요."]
           }
