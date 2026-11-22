@@ -27,9 +27,10 @@ const INVOLUNTARY: ResignReason[] = [
   "recommended",
   "contractEnd",
   "closure",
-  "wageDelay",
 ];
-const JUSTIFIED_VOLUNTARY: ResignReason[] = ["illness", "commute"];
+const POSSIBLE_JUSTIFIED_VOLUNTARY: ResignReason[] = ["wageDelay", "illness", "commute"];
+
+export const INSURED_DAY_GUIDANCE_URL = "https://1350.moel.go.kr/rtmview.do?id=1000302825";
 
 export type UnemploymentInput = {
   resignDate: string;
@@ -58,20 +59,6 @@ function daysBetween(start: Date, end: Date): number {
   return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
 }
 
-function subtractMonths(date: Date, months: number): Date {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() - months);
-  return result;
-}
-
-// 이직일 이전 18개월 중 실제 고용보험에 가입되어 있던 달력일수(주말·공휴일 포함)를 계산합니다.
-// 실제 피보험단위기간(보수지급의 기초가 된 날)은 무급 휴무일 등에 따라 이 값과 다소 달라질 수 있습니다.
-function calculateInsuredCalendarDays(hireDate: Date, resignDate: Date): number {
-  const lookbackStart = subtractMonths(resignDate, LOOKBACK_MONTHS);
-  const windowStart = hireDate > lookbackStart ? hireDate : lookbackStart;
-  return Math.max(daysBetween(windowStart, resignDate), 0);
-}
-
 export function calculateUnemploymentEligibility(
   input: UnemploymentInput
 ): UnemploymentResult | null {
@@ -81,79 +68,54 @@ export function calculateUnemploymentEligibility(
   if (Number.isNaN(resign.getTime())) return null;
 
   const reasonInfo = RESIGN_REASONS.find((r) => r.value === input.reason);
-  const insuredUnknown = input.hireDate === null;
 
-  let insuredDays = 0;
-  if (!insuredUnknown) {
-    const hire = new Date(input.hireDate as string);
+  let calendarDays: number | null = null;
+  if (input.hireDate !== null) {
+    const hire = new Date(input.hireDate);
     if (Number.isNaN(hire.getTime()) || hire >= resign) return null;
-    insuredDays = calculateInsuredCalendarDays(hire, resign);
+    calendarDays = daysBetween(hire, resign);
   }
-  const insuredOk = !insuredUnknown && insuredDays >= REQUIRED_DAYS;
 
   const isInvoluntary = INVOLUNTARY.includes(input.reason);
-  const isJustifiedVoluntary = JUSTIFIED_VOLUNTARY.includes(input.reason);
+  const isPossiblyJustifiedVoluntary = POSSIBLE_JUSTIFIED_VOLUNTARY.includes(input.reason);
   const isPlainVoluntary = input.reason === "voluntary";
 
-  const checklist: { text: string; status: StatusLevel }[] = [];
-
-  if (insuredUnknown) {
-    checklist.push({
-      text: "이직일 이전 18개월 중 피보험단위기간 180일 이상 (확인 필요)",
+  const checklist: UnemploymentResult["checklist"] = [
+    {
+      text: `피보험단위기간 ${REQUIRED_DAYS}일 이상인지 확인 필요 (원칙: 이직일 이전 ${LOOKBACK_MONTHS}개월)`,
       status: "warning",
-    });
-  } else {
-    checklist.push({
-      text: `이직일 이전 18개월 중 피보험단위기간 180일 이상 (근무 시작일 기준 약 ${insuredDays}일 계산됨)`,
-      status: insuredOk ? "success" : "danger",
-    });
-  }
+    },
+  ];
 
   if (input.workedOver15hPerWeek === "unknown") {
     checklist.push({ text: "주 15시간 이상 근무 여부 (확인 필요)", status: "warning" });
   } else {
     checklist.push({
-      text: `주 15시간 이상 근무: ${input.workedOver15hPerWeek === "yes" ? "예" : "아니오 (초단시간, 24개월 중 180일 기준 적용)"}`,
-      status: input.workedOver15hPerWeek === "yes" ? "success" : "warning",
+      text: input.workedOver15hPerWeek === "yes"
+        ? "주 15시간 이상 근무: 예로 입력함"
+        : "주 15시간 이상 근무: 아니오로 입력함 (적용 기준기간 확인 필요)",
+      status: input.workedOver15hPerWeek === "yes" ? "neutral" : "warning",
     });
   }
 
-  checklist.push({
-    text: `퇴사 사유: ${reasonInfo?.label ?? "-"}`,
-    status: isInvoluntary ? "success" : isJustifiedVoluntary ? "warning" : isPlainVoluntary ? "danger" : "warning",
-  });
-
-  // 종합 판정
-  let status: StatusLevel;
-  let label: string;
-
-  if (!insuredUnknown && !insuredOk) {
-    status = "danger";
-    label = "가능성 낮음";
+  let reasonCheck = "이직 사유 인정 여부 확인 필요";
+  if (isInvoluntary) {
+    reasonCheck = "비자발적 사유로 입력함, 이직확인서 확인 필요";
+  } else if (isPossiblyJustifiedVoluntary) {
+    reasonCheck = "정당한 이직 사유에 해당하는지 증빙과 함께 확인 필요";
   } else if (isPlainVoluntary) {
-    status = "danger";
-    label = "가능성 낮음 (자진퇴사)";
-  } else if (
-    insuredUnknown ||
-    input.workedOver15hPerWeek === "unknown" ||
-    isJustifiedVoluntary ||
-    input.reason === "other"
-  ) {
-    status = "warning";
-    label = "추가 확인 필요";
-  } else if (isInvoluntary && input.workedOver15hPerWeek === "yes" && insuredOk) {
-    status = "success";
-    label = "가능성 높음";
-  } else {
-    status = "warning";
-    label = "추가 확인 필요";
+    reasonCheck = "일반적으로 수급이 제한되지만, 예외 사유가 있는지 확인 필요";
   }
+  checklist.push({
+    text: `퇴사 사유: ${reasonInfo?.label ?? "-"} (${reasonCheck})`,
+    status: "warning",
+  });
 
   const summaryLines = [
     `퇴사(예정)일: ${input.resignDate}`,
-    insuredUnknown
+    calendarDays === null
       ? "근무 시작일: 모르겠음으로 표시함"
-      : `근무 시작일: ${input.hireDate} (이직일 이전 18개월 중 약 ${insuredDays}일 계산됨)`,
+      : `근무 시작일: ${input.hireDate} (퇴사일까지 달력상 ${calendarDays}일 경과, 참고용)`,
     `주 15시간 이상 근무: ${
       input.workedOver15hPerWeek === "unknown"
         ? "모르겠음"
@@ -165,16 +127,16 @@ export function calculateUnemploymentEligibility(
   ];
 
   const centerChecks: string[] = [
-    "정확한 피보험단위기간 및 소정급여일수",
+    "이직확인서상 피보험단위기간, 이전 직장 일수의 합산 가능 여부 및 소정급여일수",
   ];
-  if (insuredUnknown) {
-    centerChecks.push("고용보험 가입기간 및 실제 근무일수 확인");
+  if (input.workedOver15hPerWeek !== "yes") {
+    centerChecks.push("소정근로시간·근로일수에 따른 적용 기준기간 확인");
   }
-  if (input.workedOver15hPerWeek === "unknown") {
-    centerChecks.push("주당 실제 소정근로시간 확인");
-  }
-  if (isJustifiedVoluntary || input.reason === "other") {
+  if (isPossiblyJustifiedVoluntary || input.reason === "other") {
     centerChecks.push("자진퇴사의 정당한 사유 인정 여부");
+  }
+  if (input.reason === "wageDelay") {
+    centerChecks.push("임금체불 기간과 금액 등 인정 요건 및 증빙자료");
   }
   if (isPlainVoluntary) {
     centerChecks.push("예외적으로 인정되는 자진퇴사 사유에 해당하는지 여부");
@@ -196,13 +158,14 @@ export function calculateUnemploymentEligibility(
 
   const policyNotes = [
     "2026년 기준 구직급여는 1일 하한액 66,048원(최저임금 10,320원×8시간×80%), 1일 상한액 68,100원입니다.",
-    "피보험단위기간은 원칙적으로 18개월 중 180일 이상이어야 하며, 주 15시간 미만 초단시간 근로자는 24개월 중 180일 기준이 적용됩니다.",
-    "위 180일 계산은 근무 시작일부터 퇴사일까지의 달력일수(주말·공휴일 포함)를 기준으로 한 근사치입니다. 실제 피보험단위기간은 무급 휴무일 등 회사 취업규칙에 따라 다소 달라질 수 있어 고용센터 확인이 필요합니다.",
+    `원칙적으로 이직일 이전 ${LOOKBACK_MONTHS}개월 동안의 피보험단위기간을 합산해 ${REQUIRED_DAYS}일 이상인지 확인해요. 근무 형태 등에 따라 적용 기준기간이 달라질 수 있어요.`,
+    "피보험단위기간은 고용보험 가입기간 중 보수 지급의 기초가 된 날을 합산한 값이에요. 유급휴일은 포함될 수 있고 무급휴일은 제외돼요. 기준기간 안에서 이전 직장의 해당 일수도 합산될 수 있어요.",
+    "입력한 날짜로 표시하는 달력상 경과일은 참고용이며, 피보험단위기간이나 수급 자격을 뜻하지 않아요.",
   ];
 
   return {
-    status,
-    label,
+    status: "warning",
+    label: "추가 확인 필요",
     summaryLines,
     checklist,
     centerChecks,

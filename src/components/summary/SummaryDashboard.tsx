@@ -13,6 +13,10 @@ import {
   type SavedHolidayPay,
 } from "@/lib/storage";
 import { formatWon } from "@/lib/format";
+import {
+  calculateUnemploymentEligibility,
+  type UnemploymentResult,
+} from "@/lib/calculations/unemployment";
 
 const DEFAULT_CENTER_CHECKS = [
   "실업급여 신청 전 고용센터 상담 예약",
@@ -22,13 +26,15 @@ const DEFAULT_CENTER_CHECKS = [
 
 export default function SummaryDashboard() {
   const [retirement, setRetirement] = useState<SavedRetirement | null>(null);
-  const [unemployment, setUnemployment] = useState<SavedUnemployment | null>(null);
+  const [unemployment, setUnemployment] = useState<UnemploymentResult | null>(null);
   const [holidayPay, setHolidayPay] = useState<SavedHolidayPay | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setRetirement(loadCalculatorResult<SavedRetirement>(STORAGE_KEYS.retirement));
-    setUnemployment(loadCalculatorResult<SavedUnemployment>(STORAGE_KEYS.unemployment));
+    const savedUnemployment = loadCalculatorResult<SavedUnemployment>(STORAGE_KEYS.unemployment);
+    // 이전 버전의 달력일수 기반 판정 대신, 같은 입력을 현재 기준으로 안내합니다.
+    setUnemployment(savedUnemployment?.input ? calculateUnemploymentEligibility(savedUnemployment.input) : null);
     setHolidayPay(loadCalculatorResult<SavedHolidayPay>(STORAGE_KEYS.holidayPay));
     setLoaded(true);
   }, []);
@@ -41,7 +47,7 @@ export default function SummaryDashboard() {
     missingInfo.push("퇴직금 발생 조건을 다시 확인해보세요.");
 
   if (!unemployment) missingInfo.push("실업급여 조건 체크가 아직 없어요.");
-  else if (unemployment.result.status !== "success")
+  else if (unemployment.status !== "success")
     missingInfo.push("실업급여 조건 중 확인이 필요한 항목이 있어요.");
 
   if (!holidayPay) missingInfo.push("주휴수당 계산이 아직 없어요.");
@@ -50,7 +56,7 @@ export default function SummaryDashboard() {
 
   const nextSteps: string[] = [];
   if (!retirement) nextSteps.push("퇴직금 계산기에서 예상 퇴직금을 확인해보세요.");
-  if (!unemployment) nextSteps.push("실업급여 조건 체크에서 가능성을 확인해보세요.");
+  if (!unemployment) nextSteps.push("실업급여 조건 체크에서 확인할 항목을 정리해보세요.");
   if (!holidayPay) nextSteps.push("주휴수당 계산기에서 예상 금액을 확인해보세요.");
   if (unemployment)
     nextSteps.push("고용센터에서 정확한 피보험단위기간과 소정급여일수를 확인하세요.");
@@ -78,11 +84,11 @@ export default function SummaryDashboard() {
         />
         <ResultCard
           title="실업급여 조건 결과"
-          status={unemployment ? unemployment.result.status : "neutral"}
-          statusLabel={unemployment ? unemployment.result.label : "정보 부족"}
+          status={unemployment ? unemployment.status : "neutral"}
+          statusLabel={unemployment ? unemployment.label : "정보 부족"}
           lines={
             unemployment
-              ? unemployment.result.summaryLines.slice(0, 2)
+              ? unemployment.summaryLines.slice(0, 2)
               : ["아직 확인하지 않았어요."]
           }
           href="/unemployment"
@@ -108,7 +114,7 @@ export default function SummaryDashboard() {
       <Card className="p-6">
         <h3 className="text-base text-text">고용센터 확인 필요 항목</h3>
         <ul className="mt-3 space-y-1.5 text-sm text-text">
-          {(unemployment ? unemployment.result.centerChecks : DEFAULT_CENTER_CHECKS).map(
+          {(unemployment ? unemployment.centerChecks : DEFAULT_CENTER_CHECKS).map(
             (item) => (
               <li key={item}>· {item}</li>
             )

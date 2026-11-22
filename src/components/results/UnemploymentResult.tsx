@@ -2,7 +2,10 @@ import Card from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Disclaimer from "@/components/ui/Disclaimer";
 import { CheckCircleIcon } from "@/components/ui/icons";
-import type { UnemploymentResult as UnemploymentResultType } from "@/lib/calculations/unemployment";
+import {
+  INSURED_DAY_GUIDANCE_URL,
+  type UnemploymentResult as UnemploymentResultType,
+} from "@/lib/calculations/unemployment";
 
 const APPLICATION_STEPS = [
   "고용24(work24.go.kr)에서 구직등록 및 이력서를 작성해요.",
@@ -34,7 +37,7 @@ export default function UnemploymentResult({ result }: UnemploymentResultProps) 
         </div>
 
         <div>
-          <p className="text-xs font-bold text-sub">조건 충족 여부 체크리스트</p>
+          <p className="text-xs font-bold text-sub">입력 내용과 확인할 조건</p>
           <ul className="mt-2 space-y-2">
             {result.checklist.map((item) => (
               <li
@@ -47,7 +50,9 @@ export default function UnemploymentResult({ result }: UnemploymentResultProps) 
                       ? "text-success"
                       : item.status === "danger"
                         ? "text-danger"
-                        : "text-warning"
+                        : item.status === "neutral"
+                          ? "text-sub"
+                          : "text-warning"
                   }`}
                 />
                 <span className="text-text">{item.text}</span>
@@ -64,6 +69,14 @@ export default function UnemploymentResult({ result }: UnemploymentResultProps) 
             <li key={item}>· {item}</li>
           ))}
         </ul>
+        <a
+          href={INSURED_DAY_GUIDANCE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-block text-sm font-medium text-primary underline"
+        >
+          고용노동부 피보험단위기간 안내
+        </a>
       </Card>
 
       <Card className="p-6">
