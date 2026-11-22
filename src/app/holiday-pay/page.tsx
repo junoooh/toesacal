@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HolidayPayCalculator from "@/components/calculators/HolidayPayCalculator";
+import { HOLIDAY_PAY_MINIMUM_WAGE_FAQ } from "@/lib/calculations/holidayPay";
 
 export const metadata: Metadata = {
   title: "주휴수당 계산기",
@@ -23,6 +24,11 @@ export default function HolidayPayPage() {
       <div className="mt-8">
         <HolidayPayCalculator />
       </div>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-bold text-text">입력한 시급이 최저임금보다 낮으면 어떻게 되나요?</h2>
+        <p className="mt-2 text-sm leading-relaxed text-sub">{HOLIDAY_PAY_MINIMUM_WAGE_FAQ}</p>
+      </section>
     </div>
   );
 }

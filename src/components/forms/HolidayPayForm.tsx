@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Button from "@/components/ui/Button";
 import NumberField from "@/components/ui/NumberField";
 import YesNoUnknown from "@/components/ui/YesNoUnknown";
 import type { YesNoUnknown as YesNoUnknownValue } from "@/lib/calculations/unemployment";
 import {
   DAY_LABELS,
+  HOLIDAY_PAY_WORK_YEARS,
   WORK_TYPES,
+  getDefaultHolidayPayWorkYear,
+  isHolidayPayWorkYear,
   type HolidayPayInput,
+  type HolidayPayWorkYear,
   type WorkType,
 } from "@/lib/calculations/holidayPay";
 
@@ -20,7 +24,14 @@ type HourMode = "uniform" | "byDay";
 
 const EMPTY_DAYS = [0, 0, 0, 0, 0, 0, 0];
 
+// 정적 페이지와 첫 브라우저 렌더를 일치시킨 뒤 한국의 현재 연도를 적용합니다.
+const subscribe = () => () => {};
+const getServerWorkYear = () => null;
+
 export default function HolidayPayForm({ onSubmit }: HolidayPayFormProps) {
+  const defaultWorkYear = useSyncExternalStore(subscribe, getDefaultHolidayPayWorkYear, getServerWorkYear);
+  const [selectedWorkYear, setSelectedWorkYear] = useState<HolidayPayWorkYear | null>(null);
+  const workYear = selectedWorkYear ?? defaultWorkYear;
   const [hourlyWage, setHourlyWage] = useState(0);
   const [hourMode, setHourMode] = useState<HourMode>("uniform");
 
@@ -49,6 +60,10 @@ export default function HolidayPayForm({ onSubmit }: HolidayPayFormProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (workYear === null) {
+      setError("근무 연도를 선택해주세요.");
+      return;
+    }
     const resolvedDailyHours = buildDailyHours();
     const totalWeeklyHours = resolvedDailyHours.reduce((sum, h) => sum + h, 0);
     if (hourlyWage <= 0 || totalWeeklyHours <= 0) {
@@ -58,6 +73,7 @@ export default function HolidayPayForm({ onSubmit }: HolidayPayFormProps) {
     setError(null);
     onSubmit({
       hourlyWage,
+      workYear,
       dailyHours: resolvedDailyHours,
       hadAbsence: hourMode === "byDay" ? "no" : hadAbsence,
       absenceDays: hourMode === "uniform" && hadAbsence === "yes" ? absenceDays : 0,
@@ -73,6 +89,25 @@ export default function HolidayPayForm({ onSubmit }: HolidayPayFormProps) {
           {error}
         </p>
       )}
+
+      <label className="flex flex-col gap-1 text-xs font-bold text-sub">
+        근무 연도
+        <select
+          required
+          value={workYear ?? ""}
+          onChange={(e) => {
+            const year = Number(e.target.value);
+            if (isHolidayPayWorkYear(year)) setSelectedWorkYear(year);
+          }}
+          className="rounded-lg border border-border bg-transparent px-3 py-2.5 text-sm text-text"
+        >
+          <option value="" disabled>근무 연도를 선택해주세요</option>
+          {HOLIDAY_PAY_WORK_YEARS.map((year) => (
+            <option key={year} value={year}>{year}년</option>
+          ))}
+        </select>
+        <span className="font-normal">선택한 연도의 최저임금과 비교해요.</span>
+      </label>
 
       <NumberField
         label="시급"

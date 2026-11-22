@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Card from "@/components/ui/Card";
+import { HOLIDAY_PAY_MINIMUM_WAGE_FAQ } from "@/lib/calculations/holidayPay";
 
 export const metadata: Metadata = {
   title: "자주 묻는 질문",
@@ -35,9 +36,13 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
       "브라우저의 사이트 데이터(쿠키 및 사이트 데이터)를 삭제하거나, 시크릿 모드에서 이용해 창을 닫으면 저장된 계산 결과와 체크리스트 완료 표시가 함께 사라져요.",
   },
   {
-    question: "실업급여·주휴수당 계산에 사용된 정책 수치는 최신인가요?",
+    question: "주휴수당 계산기는 어느 연도의 최저임금과 비교하나요?",
+    answer: HOLIDAY_PAY_MINIMUM_WAGE_FAQ,
+  },
+  {
+    question: "실업급여는 어떤 기준으로 확인하나요?",
     answer:
-      "네. 2026년 기준 최저임금(10,320원), 구직급여 1일 상한액(68,100원)·하한액(66,048원), 피보험단위기간 요건(18개월 중 180일) 등 최신 수치를 반영하고 있어요. 다만 정책은 매년 바뀔 수 있으니 정확한 확인은 고용노동부 등 공식 채널을 통해 다시 확인해주세요.",
+      "2026년 구직급여 1일 상한액(68,100원)·하한액(66,048원), 피보험단위기간 요건(18개월 중 180일)을 안내해요. 정책은 매년 바뀔 수 있으니 정확한 확인은 고용노동부 등 공식 채널을 이용해주세요.",
   },
   {
     question: "여러 계산기를 꼭 순서대로 사용해야 하나요?",

@@ -1,7 +1,30 @@
 import type { StatusLevel } from "@/lib/types";
 import type { YesNoUnknown } from "@/lib/calculations/unemployment";
 
-export const MINIMUM_WAGE_2026 = 10320;
+// 2027년 적용 최저임금 고시: https://law.go.kr/LSW/flDownload.do?flSeq=167847381
+const MINIMUM_WAGE_BY_YEAR = { 2026: 10320, 2027: 10700 } as const;
+export type HolidayPayWorkYear = keyof typeof MINIMUM_WAGE_BY_YEAR;
+// 연도 선택이 생기기 전에 저장한 계산은 모두 2026년 기준을 사용했습니다.
+export const LEGACY_HOLIDAY_PAY_WORK_YEAR = 2026;
+export const HOLIDAY_PAY_WORK_YEARS = Object.keys(MINIMUM_WAGE_BY_YEAR).map(
+  (year) => Number(year) as HolidayPayWorkYear,
+);
+
+export function isHolidayPayWorkYear(year: number): year is HolidayPayWorkYear {
+  return HOLIDAY_PAY_WORK_YEARS.some((supportedYear) => supportedYear === year);
+}
+
+export function getDefaultHolidayPayWorkYear(now = new Date()): HolidayPayWorkYear | null {
+  const year = Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Seoul", year: "numeric" }).format(now));
+  return isHolidayPayWorkYear(year) ? year : null;
+}
+
+export function formatHolidayPayMinimumWage(year: HolidayPayWorkYear): string {
+  return `${year}년 최저임금(${MINIMUM_WAGE_BY_YEAR[year].toLocaleString("ko-KR")}원)`;
+}
+
+export const HOLIDAY_PAY_MINIMUM_WAGE_FAQ =
+  `입력한 시급이 선택한 근무 연도의 최저임금보다 낮으면 안내를 표시해요. 비교 기준은 ${HOLIDAY_PAY_WORK_YEARS.map(formatHolidayPayMinimumWage).join(", ")}이에요. 주휴수당을 포함한 시급이라면 근로계약서에서 기본 시급을 따로 확인해주세요.`;
 
 export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
@@ -16,6 +39,7 @@ export const WORK_TYPES: { value: WorkType; label: string }[] = [
 
 export type HolidayPayInput = {
   hourlyWage: number;
+  workYear?: HolidayPayWorkYear;
   dailyHours: number[]; // 길이 7, 월~일 각 요일별 근무시간
   hadAbsence: YesNoUnknown;
   absenceDays: number; // hadAbsence가 "yes"일 때만 의미 있음
@@ -24,6 +48,7 @@ export type HolidayPayInput = {
 };
 
 export type HolidayPayResult = {
+  workYear?: HolidayPayWorkYear;
   status: StatusLevel;
   label: string;
   dailyHours: number[];
@@ -106,14 +131,16 @@ export function calculateHolidayPay(
     );
   }
 
-  const belowMinimumWage = input.hourlyWage < MINIMUM_WAGE_2026;
+  const workYear = input.workYear ?? LEGACY_HOLIDAY_PAY_WORK_YEAR;
+  const belowMinimumWage = input.hourlyWage < MINIMUM_WAGE_BY_YEAR[workYear];
   if (belowMinimumWage) {
     notes.push(
-      `입력하신 시급이 2026년 최저임금(${MINIMUM_WAGE_2026.toLocaleString("ko-KR")}원)보다 낮아요. 최저임금 미달 여부를 확인해보세요.`
+      `입력하신 시급이 ${formatHolidayPayMinimumWage(workYear)}보다 낮아요. 최저임금 미달 여부를 확인해보세요.`
     );
   }
 
   return {
+    workYear,
     status,
     label,
     dailyHours: input.dailyHours,
