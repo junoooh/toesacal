@@ -88,8 +88,8 @@ export default function UnemploymentForm({ onSubmit }: UnemploymentFormProps) {
         )}
         {!hireDateUnknown && (
           <p className="mt-1.5 text-xs text-sub">
-            근무 시작일과 퇴사(예정)일을 기준으로 이직일 이전 18개월 중
-            피보험단위기간을 자동으로 계산해드려요.
+            두 날짜는 달력상 경과일을 보여주는 데만 써요. 피보험단위기간은
+            이 날짜만으로 확인할 수 없어요.
           </p>
         )}
         {hireDateUnknown && (

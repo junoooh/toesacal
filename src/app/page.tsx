@@ -21,7 +21,7 @@ const FEATURES = [
     icon: <ShieldCheckIcon />,
     title: "실업급여 조건 체크",
     description:
-      "고용보험 가입기간과 퇴사 사유를 입력하면 실업급여 가능성을 확인할 수 있어요.",
+      "근무 기간과 퇴사 사유를 정리하고 실업급여 신청 전 확인할 항목을 살펴보세요.",
     href: "/unemployment",
   },
   {
