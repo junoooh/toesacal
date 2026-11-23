@@ -17,6 +17,13 @@ type HolidayPayResultProps = {
 };
 
 export default function HolidayPayResult({ result }: HolidayPayResultProps) {
+  const {
+    weeklyPayWithoutHolidayPay,
+    monthlyEstimateWithoutHolidayPay,
+  } = result;
+  const hasComparison =
+    weeklyPayWithoutHolidayPay !== null && monthlyEstimateWithoutHolidayPay !== null;
+
   return (
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-5 p-6">
@@ -50,7 +57,9 @@ export default function HolidayPayResult({ result }: HolidayPayResultProps) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-sub">예상 주휴수당</p>
+            <p className="text-xs text-sub">
+              {hasComparison ? "예상 주휴수당" : "추가 주휴수당"}
+            </p>
             <p className="mt-1 text-xl font-extrabold text-primary">
               {formatWon(result.weeklyHolidayPay)}
             </p>
@@ -71,21 +80,25 @@ export default function HolidayPayResult({ result }: HolidayPayResultProps) {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={hasComparison ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
           <div className="rounded-xl border border-border bg-neutral-bg/50 p-4">
-            <p className="text-xs font-bold text-sub">주휴수당 포함 시</p>
+            <p className="text-xs font-bold text-sub">
+              {hasComparison ? "주휴수당 포함 시" : "주휴수당이 포함된 예상 급여"}
+            </p>
             <p className="mt-1 text-sm text-sub">주급: {formatWon(result.weeklyPayWithHolidayPay)}</p>
             <p className="mt-0.5 text-sm text-sub">
               월 예상 급여: {formatWon(result.monthlyEstimateWithHolidayPay)}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-neutral-bg/50 p-4">
-            <p className="text-xs font-bold text-sub">주휴수당 미포함 시</p>
-            <p className="mt-1 text-sm text-sub">주급: {formatWon(result.weeklyPayWithoutHolidayPay)}</p>
-            <p className="mt-0.5 text-sm text-sub">
-              월 예상 급여: {formatWon(result.monthlyEstimateWithoutHolidayPay)}
-            </p>
-          </div>
+          {hasComparison && (
+            <div className="rounded-xl border border-border bg-neutral-bg/50 p-4">
+              <p className="text-xs font-bold text-sub">주휴수당 미포함 시</p>
+              <p className="mt-1 text-sm text-sub">주급: {formatWon(weeklyPayWithoutHolidayPay)}</p>
+              <p className="mt-0.5 text-sm text-sub">
+                월 예상 급여: {formatWon(monthlyEstimateWithoutHolidayPay)}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-neutral-bg/50 p-4">

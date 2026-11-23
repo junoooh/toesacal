@@ -33,9 +33,9 @@ export type HolidayPayResult = {
   weeklyHolidayHours: number;
   weeklyHolidayPay: number;
   weeklyPayWithHolidayPay: number;
-  weeklyPayWithoutHolidayPay: number;
+  weeklyPayWithoutHolidayPay: number | null;
   monthlyEstimateWithHolidayPay: number;
-  monthlyEstimateWithoutHolidayPay: number;
+  monthlyEstimateWithoutHolidayPay: number | null;
   belowMinimumWage: boolean;
   notes: string[];
 };
@@ -51,15 +51,16 @@ export function calculateHolidayPay(
   if (input.hourlyWage <= 0 || totalWeeklyHours <= 0) return null;
 
   const weeklyHolidayHours = Math.min(8, (totalWeeklyHours / 40) * 8);
-  const baseWeeklyPay = input.hourlyWage * totalWeeklyHours;
+  const inputWeeklyPay = input.hourlyWage * totalWeeklyHours;
   const rawHolidayPay = weeklyHolidayHours * input.hourlyWage;
 
   const meetsHourThreshold = totalWeeklyHours >= 15;
   const wageAlreadyIncludes = input.wageIncludesHolidayPay === "yes";
 
   const weeklyHolidayPay = wageAlreadyIncludes ? 0 : rawHolidayPay;
-  const weeklyPayWithHolidayPay = baseWeeklyPay + rawHolidayPay;
-  const weeklyPayWithoutHolidayPay = baseWeeklyPay;
+  const weeklyPayWithHolidayPay = inputWeeklyPay + weeklyHolidayPay;
+  // 포함 시급의 총액만으로는 미포함 급여를 알 수 없습니다.
+  const weeklyPayWithoutHolidayPay = wageAlreadyIncludes ? null : inputWeeklyPay;
 
   let status: StatusLevel;
   let label: string;
@@ -89,7 +90,7 @@ export function calculateHolidayPay(
 
   if (wageAlreadyIncludes) {
     notes.push(
-      "입력하신 시급에 주휴수당이 이미 포함되어 있다고 하셨으므로, 별도의 주휴수당은 추가로 발생하지 않아요. 근로계약서에서 포함 여부를 다시 한번 확인해보세요."
+      "입력하신 시급에 주휴수당이 이미 포함되어 있다고 하셨으므로, 예상 주급과 월급에 주휴수당을 한 번 더 더하지 않았어요. 근로계약서에서 포함 여부를 다시 한번 확인해보세요."
     );
   }
   if (input.wageIncludesHolidayPay === "unknown") {
@@ -125,7 +126,9 @@ export function calculateHolidayPay(
     weeklyPayWithHolidayPay,
     weeklyPayWithoutHolidayPay,
     monthlyEstimateWithHolidayPay: weeklyPayWithHolidayPay * WEEKS_PER_MONTH,
-    monthlyEstimateWithoutHolidayPay: weeklyPayWithoutHolidayPay * WEEKS_PER_MONTH,
+    monthlyEstimateWithoutHolidayPay: weeklyPayWithoutHolidayPay === null
+      ? null
+      : weeklyPayWithoutHolidayPay * WEEKS_PER_MONTH,
     belowMinimumWage,
     notes,
   };
